@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>買う物リスト</title>
+<meta name="robots" content="noindex, nofollow">
+
+<base target="_blank">
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f3f6fb;
+    --surface: #fff;
+    --surface-soft: #f8faff;
+    --ink: #182334;
+    --muted: #6d7889;
+    --line: #e1e7f0;
+    --primary: #315fd3;
+    --primary-deep: #244db6;
+    --notice: #fff8e8;
+    --notice-line: #f0dfb7;
+    --notice-ink: #725a2b;
+    --shadow: 0 5px 18px rgba(36, 57, 91, .055);
+  }
+  * { box-sizing: border-box; }
+  body {
+    max-width: 760px;
+    min-height: 100vh;
+    margin: 0 auto;
+    padding: max(20px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) calc(36px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+    background: var(--page);
+    color: var(--ink);
+    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", sans-serif;
+    -webkit-text-size-adjust: 100%;
+  }
+  button, a, input { font: inherit; }
+  button, a { -webkit-tap-highlight-color: transparent; }
+  :focus-visible { outline: 3px solid rgba(49, 95, 211, .38); outline-offset: 2px; }
+  h1 { min-height: 48px; margin: 0 0 12px; padding: 7px 0 5px; font-size: 23px; font-weight: 750; letter-spacing: -.045em; line-height: 1.35; }
+  .saving { display: inline-block; margin-left: 9px; color: var(--muted); font-size: 12px; font-weight: 500; letter-spacing: 0; vertical-align: 2px; }
+  .reload {
+    float: right;
+    min-height: 44px;
+    margin: 0 0 10px 12px;
+    padding: 0 15px;
+    border: 1px solid var(--line);
+    border-radius: 13px;
+    background: var(--surface);
+    color: var(--ink);
+    box-shadow: 0 2px 7px rgba(36, 57, 91, .04);
+    font-size: 13px;
+    font-weight: 650;
+    cursor: pointer;
+  }
+  .tabs { display: flex; gap: 8px; overflow-x: auto; margin: 0 -2px 14px; padding: 2px 2px 7px; scrollbar-width: thin; scrollbar-color: #c9d3e1 transparent; overscroll-behavior-x: contain; }
+  .tabs button {
+    flex: none;
+    min-height: 44px;
+    padding: 0 15px;
+    border: 1px solid var(--line);
+    border-radius: 15px;
+    background: var(--surface);
+    color: #46546a;
+    box-shadow: 0 2px 6px rgba(36, 57, 91, .035);
+    font-size: 13px;
+    font-weight: 650;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .tabs button.on { border-color: #253a60; background: #253a60; color: #fff; box-shadow: 0 4px 10px rgba(37, 58, 96, .17); }
+  .rule { margin: 0 0 10px; padding: 11px 14px 11px 16px; border: 1px solid var(--notice-line); border-left: 3px solid #dfbd6e; border-radius: 13px; background: var(--notice); color: var(--notice-ink); font-size: 12px; line-height: 1.55; }
+  .rule ol { margin: 5px 0 0; padding-left: 19px; }
+  .rule li { padding: 1px 0 1px 2px; }
+  .rule li + li { margin-top: 2px; }
+  .item { margin-bottom: 11px; padding: 14px; border: 1px solid var(--line); border-radius: 17px; background: var(--surface); box-shadow: var(--shadow); }
+  .item.done { opacity: .68; }
+  .item.done .name { text-decoration: line-through; text-decoration-color: #8793a4; text-decoration-thickness: 1px; }
+  .item.auto { border-color: #e9c96d; background: #fffdf5; box-shadow: 0 5px 18px rgba(137, 105, 25, .07); }
+  .name { font-size: 15px; font-weight: 700; line-height: 1.6; overflow-wrap: anywhere; }
+  .grip { display: inline-block; padding: 3px 10px 3px 0; color: #93a0b2; font-size: 19px; line-height: 1; vertical-align: -2px; cursor: grab; touch-action: none; user-select: none; }
+  .badge, .alert { display: inline-block; margin-right: 6px; padding: 2px 8px; border-radius: 7px; font-size: 10px; font-weight: 750; line-height: 1.5; vertical-align: 2px; white-space: nowrap; }
+  .badge { color: #fff; }
+  .b-yahoo { background: #e60033; }
+  .b-rakuten { background: #bf0000; }
+  .b-edion { background: #0757a5; }
+  .b-yamada { background: #d7182a; }
+  .b-dshopping { background: #bd173d; }
+  .alert { border: 1px solid #f1d98e; background: #fff3c5; color: #765514; }
+  .meta { margin: 5px 0 10px; color: var(--muted); font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+  .item > .meta + .meta { margin-top: -5px; }
+  .btns { display: flex; gap: 9px; margin-top: 12px; }
+  .btns a {
+    display: flex;
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 50px;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 10px;
+    border: 1px solid transparent;
+    border-radius: 13px;
+    font-size: 13px;
+    font-weight: 750;
+    line-height: 1.35;
+    text-align: center;
+    text-decoration: none;
+    overflow-wrap: anywhere;
+  }
+  .jmp { background: #c52a3d; color: #fff; }
+  .open { border-color: #d8deea !important; background: #eef1f6; color: #677388; opacity: .78; }
+  .open.ready, .open.direct { border-color: var(--primary) !important; background: var(--primary); color: #fff; opacity: 1; }
+  .btns a:active, .reload:active, .tabs button:active { transform: translateY(1px); }
+  .sub { display: flex; min-height: 44px; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; font-size: 13px; }
+  .sub label { display: flex; min-height: 44px; align-items: center; gap: 8px; font-weight: 600; cursor: pointer; }
+  .sub input { width: 20px; height: 20px; margin: 0; accent-color: #315fd3; }
+  .del { min-height: 44px; padding: 0 4px 0 8px; border: 0; background: transparent; color: #a34250; font-size: 12px; font-weight: 600; cursor: pointer; }
+  .empty { padding: 38px 16px; border: 1px dashed #ccd5e2; border-radius: 16px; background: rgba(255, 255, 255, .55); color: var(--muted); text-align: center; }
+  .ghost { opacity: .35; }
+  @media (max-width: 420px) {
+    body { padding-right: max(13px, env(safe-area-inset-right)); padding-left: max(13px, env(safe-area-inset-left)); }
+    h1 { font-size: 21px; }
+    .item { padding: 12px; }
+    .btns { gap: 7px; }
+    .btns a { min-height: 52px; padding-right: 7px; padding-left: 7px; font-size: 12px; }
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --page: #111722;
+      --surface: #1a2331;
+      --surface-soft: #202b3b;
+      --ink: #e8edf5;
+      --muted: #a1adbd;
+      --line: #303c4e;
+      --primary: #6d91f2;
+      --primary-deep: #86a4ff;
+      --notice: #2a281f;
+      --notice-line: #51452b;
+      --notice-ink: #e2d2a9;
+      --shadow: 0 6px 20px rgba(0, 0, 0, .16);
+    }
+    .tabs button { color: #c5cfdd; }
+    .tabs button.on { border-color: #829be1; background: #344a78; color: #fff; }
+    .item.auto { border-color: #756239; background: #25251f; }
+    .alert { border-color: #67552d; background: #42371f; color: #f0d58c; }
+    .open { border-color: #3b475a !important; background: #293343; color: #b2bfd1; }
+    .open.ready, .open.direct { border-color: var(--primary) !important; background: #4265bf; color: #fff; }
+    .empty { border-color: #3a4658; background: rgba(26, 35, 49, .65); }
+    .del { color: #f096a0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+  }
+</style>
+</head>
+<body>
+<button class="reload" onclick="load()">更新</button>
+<h1>買う物リスト<span class="saving" id="saving"></span></h1>
+<div class="tabs" id="tabs"></div>
+<div id="rule"></div>
+<div id="list"><div class="empty">読み込み中…</div></div>
+
+<script>
+const API = "https://script.google.com/macros/s/AKfycbzkbh_9DL5I1ZBnglgpu6Pf2CEgT5ghV3_rr1EyoDmcyu5G880BWOw94UgM5vpE7wna/exec";
+const K = (function () {
+  const m = location.hash.match(/k=([^&]+)/);
+  try {
+    if (m) { localStorage.setItem('buylist_k', m[1]); return m[1]; }
+    return localStorage.getItem('buylist_k') || '';
+  } catch (_) { return m ? m[1] : ''; }
+})();
+let TAB_ORDER = [];
+const SITES = {};
+let AUTO_DAYS = 3;
+function api_(body) {
+  // Content-Type を付けない（text/plain の単純な送信にして、事前確認の通信を起こさない）
+  return fetch(API, { method: 'POST', body: JSON.stringify(Object.assign({ k: K }, body)) })
+    .then(r => r.json())
+    .then(j => { if (!j.ok) throw new Error(j.error || '失敗しました'); return j; });
+}
+const google = { script: { get run() {
+  let ok = () => {}, ng = () => {};
+  const call = (p, pick) => { p.then(j => ok(pick(j))).catch(e => ng(e)); };
+  const r = {
+    withSuccessHandler(f) { ok = f; return r; },
+    withFailureHandler(f) { ng = f; return r; },
+    apiList() { call(api_({ action: 'list' }), j => {
+      Object.assign(SITES, j.sites || {}); TAB_ORDER = j.tabs || TAB_ORDER; AUTO_DAYS = j.autoDays || AUTO_DAYS; return j.items; }); },
+    apiRemove(k, id) { call(api_({ action: 'remove', id: id }), j => j.items); },
+    apiSaveTabOrder(k, sites) { call(api_({ action: 'tab_order', sites: sites }), j => j.tabs); },
+    apiSaveItemOrder(k, ids) { call(api_({ action: 'item_order', ids: ids }), j => j.items); },
+  };
+  return r;
+} } };
+if (!K) document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('list').innerHTML = '<div class="empty">合言葉付きのURL（#k=…）で一度開いてください</div>';
+});
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
+<script>
+const DONE_KEY = 'buylist_done';
+const VIA_KEY = 'buylist_via';
+const TAB_KEY = 'buylist_tab';
+
+// サイトごとの「マイルが付く順番」。経由なしのサイトは注意書きを出さない
+const RULES = {
+  yahoo: ['先にYahoo!のカートを空にする', '①を押して「同意の上、このショップへ行く」',
+          'このページに戻って②で商品を開き、<b>24時間以内</b>にカートへ', '次の注文はまた①から（1注文ごとに経由し直し）',
+          'アプリで買うとマイル対象外。ブラウザで買う'],
+  rakuten: ['先に楽天のお買い物かごを空にする', '①を押して「同意の上、このショップへ行く」',
+            'このページに戻って②で商品を開き、<b>24時間以内</b>にかごへ', '別のお店の商品はまた①から（1店舗ごとに経由し直し）',
+            'クーポン利用分はマイル対象外'],
+  // げん玉 dショッピング案件の注意書き（2026-10-08 案件ページで確認: 判定約5分・有効約30日）
+  dshopping: ['このブラウザでげん玉にログインしておく（Cookieを消す設定・シークレット窓は不可）',
+              '①を押して「ポイントを貯める」でdショッピングへ',
+              'このページに戻って②で商品を開き、<b>同じブラウザで</b>そのまま購入',
+              '<b>dショッピングのアプリで買うと対象外</b>。サンプル百貨店・dファッションも対象外',
+              '次の注文はまた①から（念のため1注文ごとに経由し直し）',
+              'dカードポイントモールとの二重経由はできない（最後に経由した方だけ）'],
+};
+const RULE_TITLE = { dshopping: 'でポイントが付く順番（げん玉）' };
+
+let items = [];
+let tab = (function () { try { return localStorage.getItem(TAB_KEY) || 'all'; } catch (_) { return 'all'; } })();
+
+function store(key, val) { try { if (val === undefined) return JSON.parse(localStorage.getItem(key) || '{}'); localStorage.setItem(key, JSON.stringify(val)); } catch (_) { return {}; } }
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmtDate(iso) { const d = new Date(iso); return isNaN(d) ? '' : (d.getMonth()+1) + '/' + d.getDate() + ' ' + d.getHours() + ':' + String(d.getMinutes()).padStart(2,'0'); }
+
+// 在庫通知の印。自動で入った物は「あと何日で消えるか」も返す
+function alertBadge(it) {
+  const at = it.alertAt || (it.auto ? it.addedAt : null);
+  return at ? '<span class="alert">🔔在庫通知 ' + fmtDate(at) + '</span>' : '';
+}
+function autoNote(it) {
+  if (!it.auto) return '';
+  const left = AUTO_DAYS * 24 * 3600 * 1000 - (Date.now() - new Date(it.alertAt || it.addedAt).getTime());
+  const h = Math.max(0, Math.ceil(left / 3600000));
+  return '<div class="meta">買わないならそのままでOK：あと' + (h >= 24 ? Math.ceil(h / 24) + '日' : h + '時間') + 'で自動で消えます</div>';
+}
+
+function setTab(t) { tab = t; try { localStorage.setItem(TAB_KEY, t); } catch (_) {} render(items); }
+
+function renderTabs() {
+  const count = s => items.filter(it => s === 'all' || it.site === s).length;
+  const keys = ['all'].concat(TAB_ORDER.filter(s => SITES[s]));
+  document.getElementById('tabs').innerHTML = keys.map(s =>
+    '<button data-site="' + s + '" class="' + (s === tab ? 'on' : '') + (s === 'all' ? ' fixed' : '') + '" onclick="setTab(\'' + s + '\')">' +
+      (s === 'all' ? '全部' : esc(SITES[s].label)) + ' ' + count(s) + '</button>').join('');
+  // 注意書きは表示中の商品に経由ありのサイトがある時だけ
+  const shown = new Set(items.filter(it => tab === 'all' || it.site === tab).map(it => it.site));
+  document.getElementById('rule').innerHTML = Object.keys(RULES).filter(s => shown.has(s)).map(s =>
+    '<div class="rule">' + esc(SITES[s].label) + (RULE_TITLE[s] || 'でマイルが付く順番（JALマイレージパーク）') + '<ol>' +
+      RULES[s].map(r => '<li>' + r + '</li>').join('') + '</ol></div>').join('');
+}
+
+function render(list) {
+  items = list || [];
+  renderTabs();
+  const done = store(DONE_KEY), via = store(VIA_KEY);
+  const box = document.getElementById('list');
+  const shown = items.filter(it => tab === 'all' || it.site === tab);
+  if (!shown.length) { box.innerHTML = '<div class="empty">リストは空です</div>'; return; }
+  box.innerHTML = shown.map(it => {
+    const site = SITES[it.site] || SITES.yahoo;
+    let btns;
+    if (site.via) {
+      // ①を押してから24時間以内なら②を濃く表示（この端末での記録・②は常に押せる）
+      const viaOk = via[it.id] && (Date.now() - via[it.id] < 24 * 3600 * 1000);
+      btns = '<a class="jmp" href="' + esc(site.via) + '" onclick="markVia(\'' + esc(it.id) + '\')">① ' + esc(site.viaLabel) + '</a>' +
+             '<a class="open' + (viaOk ? ' ready' : '') + '" href="' + esc(it.url) + '" rel="noreferrer">② 商品を開く</a>';
+    } else {
+      btns = '<a class="open direct" href="' + esc(it.url) + '" rel="noreferrer">' + esc(site.label) + 'で商品を開く</a>';
+    }
+    return '<div class="item' + (it.auto ? ' auto' : '') + (done[it.id] ? ' done' : '') + '" data-id="' + esc(it.id) + '">' +
+      '<div class="name"><span class="grip" title="ここを持って上下に動かすと並べ替え">≡</span>' + alertBadge(it) + '<span class="badge b-' + esc(it.site) + '">' + esc(site.label) + '</span>' + esc(it.name || it.url) + '</div>' +
+      '<div class="meta">' + (it.price ? '¥' + Number(it.price).toLocaleString() + '　' : '') + esc(it.store) +
+        (it.jan ? '　JAN ' + esc(it.jan) : '') + (it.auto ? '' : '　追加 ' + fmtDate(it.addedAt)) + '</div>' +
+      autoNote(it) +
+      '<div class="btns">' + btns + '</div>' +
+      '<div class="sub"><label><input type="checkbox"' + (done[it.id] ? ' checked' : '') +
+        ' onchange="markDone(\'' + esc(it.id) + '\', this.checked)">この端末で購入済み</label>' +
+        '<button class="del" onclick="removeItem(\'' + esc(it.id) + '\')">リストから消す（全端末）</button></div>' +
+    '</div>';
+  }).join('');
+}
+
+function markVia(id) { const v = store(VIA_KEY); v[id] = Date.now(); store(VIA_KEY, v); setTimeout(load, 300); }
+function markDone(id, on) { const d = store(DONE_KEY); if (on) d[id] = 1; else delete d[id]; store(DONE_KEY, d); render(items); }
+function removeItem(id) {
+  if (!confirm('全端末のリストから消します。よろしいですか？')) return;
+  google.script.run.withSuccessHandler(render).withFailureHandler(fail).apiRemove(K, id);
+}
+function fail(e) { document.getElementById('list').innerHTML = '<div class="empty">読み込み失敗: ' + esc(e && e.message) + '</div>'; }
+function load() { google.script.run.withSuccessHandler(render).withFailureHandler(fail).apiList(K); }
+load();
+
+// ---- ドラッグで並べ替え（並びはGAS側に保存し全端末で共通）----
+// 部品（SortableJS）が読めない時は並べ替えだけ使えない（リストはそのまま使える）
+if (window.Sortable) {
+function saving(msg) { document.getElementById('saving').textContent = msg; }
+function saveFail(e) { saving('並べ替えを保存できませんでした'); load(); }
+
+// タブ: 押したまま左右へ。「全部」は左端に固定。スマホは少し長押ししてから動く（横スクロールと区別するため）
+Sortable.create(document.getElementById('tabs'), {
+  animation: 150, delay: 250, delayOnTouchOnly: true, filter: '.fixed', preventOnFilter: false,
+  ghostClass: 'ghost', onMove: ev => !ev.related.classList.contains('fixed'),
+  onEnd: () => {
+    const order = [...document.querySelectorAll('#tabs button')].map(b => b.dataset.site).filter(s => s !== 'all');
+    if (order.join() === TAB_ORDER.join()) return;
+    TAB_ORDER = order;
+    saving('保存中…');
+    google.script.run.withSuccessHandler(o => { TAB_ORDER = o; saving(''); renderTabs(); })
+      .withFailureHandler(saveFail).apiSaveTabOrder(K, order);
+  },
+});
+
+// 商品: 「≡」を持って上下へ。サイトのタブで絞り込んでいる時は、見えている商品どうしの順だけ入れ替える
+Sortable.create(document.getElementById('list'), {
+  animation: 150, handle: '.grip', draggable: '.item', ghostClass: 'ghost',
+  onEnd: () => {
+    const shownNew = [...document.querySelectorAll('#list .item')].map(el => el.dataset.id);
+    const shownSet = new Set(shownNew);
+    let i = 0;
+    const full = items.map(it => shownSet.has(it.id) ? shownNew[i++] : it.id);
+    if (full.join() === items.map(it => it.id).join()) return;
+    const byId = {}; items.forEach(it => { byId[it.id] = it; });
+    items = full.map(id => byId[id]);
+    saving('保存中…');
+    google.script.run.withSuccessHandler(list => { saving(''); render(list); })
+      .withFailureHandler(saveFail).apiSaveItemOrder(K, full);
+  },
+});
+}
+</script>
+</body>
+</html>
