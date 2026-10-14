@@ -238,6 +238,10 @@ function renderTabs() {
       (s === 'all' ? '全部' : esc(SITES[s].label)) + ' ' + count(s) + '</button>').join('');
 }
 
+// iPhone/iPadは新しいタブだと「戻る」でνカートへ戻れないので、同じタブで開く（_topはGAS版の枠の外へ出るため）
+const IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const TGT = IOS ? ' target="_top"' : '';
+
 function render(list) {
   items = list || [];
   renderTabs();
@@ -251,10 +255,10 @@ function render(list) {
     if (site.via) {
       // ①を押してから24時間以内なら②を濃く表示（この端末での記録・②は常に押せる）
       const viaOk = via[it.id] && (Date.now() - via[it.id] < 24 * 3600 * 1000);
-      btns = '<a class="jmp" href="' + esc(site.via) + '" onclick="markVia(\'' + esc(it.id) + '\')">① ' + esc(site.viaLabel) + '</a>' +
-             '<a class="open' + (viaOk ? ' ready' : '') + '" href="' + esc(it.url) + '" rel="noreferrer">② 商品を開く</a>';
+      btns = '<a class="jmp"' + TGT + ' href="' + esc(site.via) + '" onclick="markVia(\'' + esc(it.id) + '\')">① ' + esc(site.viaLabel) + '</a>' +
+             '<a class="open' + (viaOk ? ' ready' : '') + '"' + TGT + ' href="' + esc(it.url) + '" rel="noreferrer">② 商品を開く</a>';
     } else {
-      btns = '<a class="open direct" href="' + esc(it.url) + '" rel="noreferrer">' + esc(site.label) + 'で商品を開く</a>';
+      btns = '<a class="open direct"' + TGT + ' href="' + esc(it.url) + '" rel="noreferrer">' + esc(site.label) + 'で商品を開く</a>';
     }
     return '<div class="item' + (it.auto ? ' auto' : '') + (done[it.id] ? ' done' : '') + '" data-id="' + esc(it.id) + '">' +
       '<div class="name"><span class="grip" title="ここを持って上下に動かすと並べ替え">≡</span>' + alertBadge(it) + '<span class="badge b-' + esc(it.site) + '">' + esc(site.label) + '</span>' + esc(it.name || it.url) + '</div>' +
@@ -278,6 +282,8 @@ function removeItem(id) {
 function fail(e) { document.getElementById('list').innerHTML = '<div class="empty">読み込み失敗: ' + esc(e && e.message) + '</div>'; }
 function load() { google.script.run.withSuccessHandler(render).withFailureHandler(fail).apiList(K); }
 load();
+// 「戻る」で戻った時（iPhoneは前の画面をそのまま出す）に②の濃さとリストを最新にする
+window.addEventListener('pageshow', e => { if (e.persisted) load(); });
 
 // ---- ドラッグで並べ替え（並びはGAS側に保存し全端末で共通）----
 // 部品（SortableJS）が読めない時は並べ替えだけ使えない（リストはそのまま使える）
