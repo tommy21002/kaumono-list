@@ -242,8 +242,13 @@ function renderTabs() {
 const IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 const TGT = IOS ? ' target="_top"' : '';
 
+// 開いた直後に前回のリストをすぐ出すため、最後に出したリストをこの端末に覚えておく（GASの返事を待つと数秒かかる）
+const CACHE_KEY = 'buylist_cache';
+function note_(msg) { const el = document.getElementById('saving'); if (el) el.textContent = msg; }
+
 function render(list) {
   items = list || [];
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify({ items: items, sites: SITES, tabs: TAB_ORDER })); } catch (_) {}
   renderTabs();
   const done = store(DONE_KEY), via = store(VIA_KEY);
   const box = document.getElementById('list');
@@ -279,8 +284,25 @@ function removeItem(id) {
   if (!confirm('全端末のリストから消します。よろしいですか？')) return;
   google.script.run.withSuccessHandler(render).withFailureHandler(fail).apiRemove(K, id);
 }
-function fail(e) { document.getElementById('list').innerHTML = '<div class="empty">読み込み失敗: ' + esc(e && e.message) + '</div>'; }
-function load() { google.script.run.withSuccessHandler(render).withFailureHandler(fail).apiList(K); }
+function fail(e) {
+  note_('');
+  // 前回のリストを出している時は消さずに残し、見出し横に知らせるだけにする
+  if (items.length) { note_('最新にできませんでした。「更新」を押してください'); return; }
+  document.getElementById('list').innerHTML = '<div class="empty">読み込み失敗: ' + esc(e && e.message) + '</div>';
+}
+function load() {
+  note_('更新中…');
+  google.script.run.withSuccessHandler(list => { note_(''); render(list); }).withFailureHandler(fail).apiList(K);
+}
+(function showCache() {
+  try {
+    const c = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+    if (!c || !Array.isArray(c.items)) return;
+    Object.keys(c.sites || {}).forEach(s => { if (!SITES[s]) SITES[s] = c.sites[s]; });
+    if (!TAB_ORDER.length && Array.isArray(c.tabs)) TAB_ORDER = c.tabs;
+    render(c.items);
+  } catch (_) {}
+})();
 load();
 // 「戻る」で戻った時（iPhoneは前の画面をそのまま出す）に②の濃さとリストを最新にする
 window.addEventListener('pageshow', e => { if (e.persisted) load(); });
